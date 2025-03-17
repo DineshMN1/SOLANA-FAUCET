@@ -1,7 +1,8 @@
 import Faucet from "./components/Faucet"
 const Home = () => {
-  return (
+  return (<>
     <Faucet/>
+    </>
   )
 }
 
