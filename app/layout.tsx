@@ -1,5 +1,4 @@
 import { Metadata } from "next";
-import Link from "next/link";
 import { Inter, Roboto_Mono } from "next/font/google";
 import "./styles/globals.css";
 import { ToastContainer } from "react-toastify";
@@ -35,22 +34,6 @@ export const metadata: Metadata = {
   description: "Get testnet SOL",
 };
 
-function Footer() {
-  return (
-    <footer className="bg-black text-center py-4 mt-auto">
-      <p className="text-sm text-gray-400">
-        Built with ❤️ by{" "}
-        <Link
-          href="https://github.com/DineshMN1"
-          className="text-gray-300 hover:text-gray-200 transition"
-        >
-          Dinesh MN
-        </Link>{" "}
-        | Get Devnet SOL
-      </p>
-    </footer>
-  );
-}
 
 export default function RootLayout({
   children,
@@ -67,7 +50,6 @@ export default function RootLayout({
             </main>
           </TransitionContextProvider>
           <ToastContainer position="bottom-right" theme="dark" />
-          <Footer />
         </WalletContextProvider>
       </body>
     </html>

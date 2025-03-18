@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from 'react';
+import  Link  from 'next/link';
 import { toast } from 'react-toastify';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import ExternalLinkIcon from "@heroicons/react/outline";
@@ -65,44 +66,62 @@ const Faucet = () => {
     ];
 
     return (
-        <main className='max-w-7xl absolute top-45 grid grid-cols-1 sm:grid-cols-6 gap-4 p-4 text-white'>
-            <form onSubmit={event => fundWallet(event)} className='w-155 rounded-lg min-h-content bg-[#2a302f] p-4 sm:col-span-6 lg:col-start-2 lg:col-end-6'>
-                <div className='flex justify-between items-center'>
-                    <h2 className='text-lg sm:text-2xl font-semibold'>
-                    Faucet 
-                    </h2>
-                    <button
-                        type='submit'
-                        className='bg-violet-600 rounded-lg py-1 sm:py-2 px-4 font-semibold transition-all duration-200 border-2 border-transparent hover:border-violet-900 disabled:opacity-50 disabled:hover:bg-[#fa6ece] hover:bg-transparent disabled:cursor-not-allowed'
+        <>
+            <main className='min-h-screen flex flex-col justify-between max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-white'>
+                <div className="flex flex-grow justify-center items-center">
+                    <form onSubmit={event => fundWallet(event)} className='w-full max-w-lg rounded-lg bg-[#2a302f] p-4 sm:col-span-6 lg:col-start-2 lg:col-end-6'>
+                        <div className='flex flex-col sm:flex-row justify-between items-center'>
+                            <h2 className='text-lg sm:text-2xl font-semibold text-center sm:text-left'>
+                                Faucet 
+                            </h2>
+                            <button
+                                type='submit'
+                                className='mt-4 sm:mt-0 bg-violet-600 rounded-lg py-2 px-6 font-semibold transition-all duration-200 border-2 border-transparent hover:border-violet-900 disabled:opacity-50 disabled:hover:bg-[#fa6ece] hover:bg-transparent disabled:cursor-not-allowed'
+                            >
+                                Fund
+                            </button>
+                        </div>
+                        
+                        <div className='text-sm font-semibold mt-6 bg-[#222524] border-2 border-white rounded-lg p-4'>
+                            <ul className='p-2'>
+                                {outputs.map(({ title, dependency, href }, index) => (
+                                    <li key={title} className={`flex flex-col sm:flex-row justify-between items-center text-center sm:text-left ${index !== 0 && 'mt-4'}`}>
+                                        <p className='tracking-wider'>{title}</p>
+                                        {dependency && (
+                                            <a
+                                                href={href}
+                                                target='_blank'
+                                                rel='noopener noreferrer'
+                                                className='flex text-[#80ebff] italic hover:text-white transition-all duration-200'
+                                            >
+                                                {dependency.toString().slice(0, 25)}...
+                                                <ExternalLinkIcon className='w-5 ml-1' />
+                                            </a>
+                                        )}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    </form>
+                </div>
+    
+            </main>
+            
+            <footer className="bg-black text-center py-4">
+                <p className="text-sm text-gray-400">
+                    Built with ❤️ by{" "}
+                    <Link
+                        href="https://github.com/DineshMN1"
+                        className="text-gray-300 hover:text-gray-200 transition"
                     >
-                        Fund
-                    </button>
-                </div>
-                
-                <div className='text-sm font-semibold mt-8 bg-[#222524] border-2 border-white rounded-lg p-2'>
-                    <ul className='p-2'>
-                        {outputs.map(({ title, dependency, href }, index) => (
-                            <li key={title} className={`flex justify-between items-center ${index !== 0 && 'mt-4'}`}>
-                                <p className='tracking-wider'>{title}</p>
-                                {
-                                    dependency &&
-                                    <a
-                                        href={href}
-                                        target='_blank'
-                                        rel='noopener noreferrer'
-                                        className='flex text-[#80ebff] italic hover:text-white transition-all duration-200'
-                                    >
-                                        {dependency.toString().slice(0, 25)}...
-                                        <ExternalLinkIcon className='w-5 ml-1' />
-                                    </a>                                   
-                                }
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            </form>
-        </main>
+                        Dinesh MN
+                    </Link>{" "}
+                    | Get Devnet SOL
+                </p>
+            </footer>
+        </>
     );
-};
-
-export default Faucet;
+}
+    
+    export default Faucet;
+    
