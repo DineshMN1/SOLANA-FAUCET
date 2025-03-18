@@ -1,125 +1,108 @@
-"use client"
-import React, { useState } from "react";
-import Footer from "./Footer"; // Import Footer
+"use client";
+
+import * as React from 'react';
+import { toast } from 'react-toastify';
+import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+import ExternalLinkIcon from "@heroicons/react/outline";
+import * as web3 from '@solana/web3.js';
 
 const Faucet = () => {
-  const [walletAddress, setWalletAddress] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [txHash, setTxHash] = useState("");
-  const [error, setError] = useState("");
-  const [amount, setAmount] = useState(1);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    // allocate state to hold transaction signature
+    const [txSig, setTxSig] = React.useState<string>('');
 
-  const handleAirdrop = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    setTxHash("");
+    // get user info from wallet provider
+    const { connection } = useConnection();
+    const { publicKey, sendTransaction } = useWallet();
 
-    try {
-      const res = await fetch("/api/airdrop", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address: walletAddress, amount }),
-      });
+    // function to send sol 
+    const fundWallet = async (event: { preventDefault: () => void }) => {
+        // prevent page from refreshing when this function runs
+        event.preventDefault();
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Airdrop failed");
+        // if user is not connected, throw an error
+        if (!publicKey || !connection) {
+            toast.error('Please connect your wallet');
+            throw 'Please connect your wallet';
+        }
 
-      setTxHash(data.txHash);
-    } catch (err: unknown) {
-      setError((err as Error).message || "Something went wrong");
-    } finally {
-      setLoading(false);
-    }
-  };
+        // generate a new keypair 
+        const sender = web3.Keypair.generate();
 
-  return (
-    <div className="flex flex-col min-h-screen bg-black text-white">
-      <div className="flex-grow flex flex-col items-center justify-center">
-        <h1 className="text-4xl absolute top-20 font-bold bg-gradient-to-r from-purple-500 to-pink-400 bg-clip-text text-transparent text-center">
-          Solana Faucet
-        </h1>
+        // check the balance of the keypair and send funds if needed
+        const balance = await connection.getBalance(sender.publicKey);
+        if (balance < web3.LAMPORTS_PER_SOL) {
+            await connection.requestAirdrop(sender.publicKey, web3.LAMPORTS_PER_SOL * 1);
+        }
 
-        {/* Form Card */}
-        <div className="w-96 bg-black border border-gray-600 p-6 rounded-lg shadow-lg flex flex-col items-center mt-5">
-          <form onSubmit={handleAirdrop} className="w-full flex flex-col items-center">
-            <label className="text-xl font-bold mb-5">Request Airdrop</label>
+        // create a new transaction and add the instruction to transfer tokens
+        const transaction = new web3.Transaction().add(
+            web3.SystemProgram.transfer({
+                fromPubkey: sender.publicKey,
+                toPubkey: publicKey,
+                lamports: web3.LAMPORTS_PER_SOL * 1
+            }),
+        );
 
-            {/* Wallet Input + Dropdown in a Row */}
-            <div className="flex w-full space-x-2">
-              <input
-                type="text"
-                placeholder="Your Wallet Address..."
-                value={walletAddress}
-                onChange={(e) => setWalletAddress(e.target.value)}
-                className="border p-2 w-full text-gray-300 border-gray-600 rounded focus:ring-1 focus:ring-gray-500 outline-none"
-                required
-              />
+        // send the transaction to the network
+        try {
+            const signature = await sendTransaction(transaction, connection, {
+                signers: [sender]
+            });
+            setTxSig(signature); // if tx lands, set state w/ tx signature
+        } catch (error) {
+            toast.error('Error funding wallet'); // if tx fails, throw error notification
+            throw error;
+        }
+    };
 
-              {/* Small Dropdown */}
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="border border-gray-600 px-3 py-2 text-sm text-white rounded bg-black flex items-center"
-                >
-                  Amount
-                </button>
+    // format for outputs we want to render
+    const outputs = [
+        {
+            title: 'Transaction Signature...',
+            dependency: txSig,
+            href: `https://explorer.solana.com/tx/${txSig}?cluster=devnet`,
+        }
+    ];
 
-                {isDropdownOpen && (
-                  <div className="absolute right-0 w-24 bg-black border border-gray-600 rounded mt-1 shadow-lg transition-all duration-300 transform scale-95 origin-top-right">
-                    {[0.5, 1, 2].map((amt) => (
-                      <div
-                        key={amt}
-                        onClick={() => {
-                          setAmount(amt);
-                          setIsDropdownOpen(false);
-                        }}
-                        className="px-3 py-2 text-sm text-white cursor-pointer hover:bg-gray-800 transition duration-200"
-                      >
-                        {amt} SOL
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Airdrop Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="bg-violet-400 text-black px-5 py-2 rounded w-full mt-3 hover:bg-violet-500 transition duration-300"
-            >
-              {loading ? "Airdropping..." : "Airdrop SOL"}
-            </button>
-          </form>
-        </div>
-
-        {/* Transaction Hash */}
-        {txHash && (
-          <p className="text-green-400 mt-3">
-            ✅ Transaction:{" "}
-            <a
-              href={`https://explorer.solana.com/tx/${txHash}?cluster=devnet`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline text-blue-400"
-            >
-              View on Explorer
-            </a>
-          </p>
-        )}
-
-        {/* Error Message */}
-        {error && <p className="text-red-500 mt-3">❌ {error}</p>}
-      </div>
-
-      {/* Footer at the bottom */}
-      <Footer />
-    </div>
-  );
+    return (
+        <main className='max-w-7xl absolute top-45 grid grid-cols-1 sm:grid-cols-6 gap-4 p-4 text-white'>
+            <form onSubmit={event => fundWallet(event)} className='w-155 rounded-lg min-h-content bg-[#2a302f] p-4 sm:col-span-6 lg:col-start-2 lg:col-end-6'>
+                <div className='flex justify-between items-center'>
+                    <h2 className='text-lg sm:text-2xl font-semibold'>
+                    Faucet 
+                    </h2>
+                    <button
+                        type='submit'
+                        className='bg-violet-600 rounded-lg py-1 sm:py-2 px-4 font-semibold transition-all duration-200 border-2 border-transparent hover:border-violet-900 disabled:opacity-50 disabled:hover:bg-[#fa6ece] hover:bg-transparent disabled:cursor-not-allowed'
+                    >
+                        Fund
+                    </button>
+                </div>
+                
+                <div className='text-sm font-semibold mt-8 bg-[#222524] border-2 border-white rounded-lg p-2'>
+                    <ul className='p-2'>
+                        {outputs.map(({ title, dependency, href }, index) => (
+                            <li key={title} className={`flex justify-between items-center ${index !== 0 && 'mt-4'}`}>
+                                <p className='tracking-wider'>{title}</p>
+                                {
+                                    dependency &&
+                                    <a
+                                        href={href}
+                                        target='_blank'
+                                        rel='noopener noreferrer'
+                                        className='flex text-[#80ebff] italic hover:text-white transition-all duration-200'
+                                    >
+                                        {dependency.toString().slice(0, 25)}...
+                                        <ExternalLinkIcon className='w-5 ml-1' />
+                                    </a>                                   
+                                }
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            </form>
+        </main>
+    );
 };
 
 export default Faucet;
